@@ -9,7 +9,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
+import Feed from "./pages/Feed";
+import Friends from "./pages/Friends";
 import Profile from "./pages/Profile";
 import Messages from "./pages/Messages";
 import NotFound from "./pages/NotFound";
@@ -24,12 +25,14 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<Navigate to="/feed" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<Navigate to="/feed" replace />} />
+            <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
