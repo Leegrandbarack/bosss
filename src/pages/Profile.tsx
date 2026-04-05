@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Save, Copy, Check } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
+import BottomNav from "@/components/BottomNav";
 import { z } from "zod";
 
 const profileSchema = z.object({
