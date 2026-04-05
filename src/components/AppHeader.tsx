@@ -18,6 +18,9 @@ export default function AppHeader() {
         <Link to="/dashboard" className="text-xl font-bold text-primary">NEXORA</Link>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
+            <Link to="/messages"><MessageSquare className="mr-2 h-4 w-4" /> Messages</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
             <Link to="/profile"><UserIcon className="mr-2 h-4 w-4" /> Profil</Link>
           </Button>
           <Button variant="outline" size="sm" onClick={handleSignOut}>
