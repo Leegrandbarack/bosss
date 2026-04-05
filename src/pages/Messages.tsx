@@ -96,6 +96,7 @@ export default function Messages() {
           )}
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }
