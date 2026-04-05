@@ -3,6 +3,7 @@ import { useConversations, usePresence } from "@/hooks/useMessaging";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppHeader from "@/components/AppHeader";
+import BottomNav from "@/components/BottomNav";
 import ConversationList from "@/components/messaging/ConversationList";
 import ChatView from "@/components/messaging/ChatView";
 import { MessageSquare } from "lucide-react";
@@ -95,6 +96,7 @@ export default function Messages() {
           )}
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }
