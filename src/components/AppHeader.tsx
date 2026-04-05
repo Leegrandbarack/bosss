@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, User as UserIcon, MessageSquare } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function AppHeader() {
