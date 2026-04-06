@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { useConversations, usePresence } from "@/hooks/useMessaging";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import ConversationList from "@/components/messaging/ConversationList";
@@ -10,7 +9,7 @@ import { MessageSquare } from "lucide-react";
 
 export default function Messages() {
   const { user } = useAuth();
-  const { conversations, fetchConversations } = useConversations();
+  const { conversations, fetchConversations, createDirectConversation } = useConversations();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   usePresence();
@@ -22,40 +21,10 @@ export default function Messages() {
   const handleNewConversation = useCallback(
     async (otherUserId: string) => {
       if (!user) return;
-
-      // Check existing
-      for (const c of conversations) {
-        const hasOther = c.participants?.some((p) => p.user_id === otherUserId);
-        if (hasOther && c.type === "direct") {
-          setSelectedId(c.id);
-          return;
-        }
-      }
-
-      // Create new
-      const { data: conv } = await supabase
-        .from("conversations")
-        .insert({ type: "direct" })
-        .select()
-        .single();
-
-      if (!conv) return;
-
-      // Add self as participant
-      await supabase.from("conversation_participants").insert({
-        conversation_id: conv.id,
-        user_id: user.id,
-      });
-
-      // For direct messaging, we need the other user to also be a participant
-      // Using a workaround: temporarily insert via service role would be ideal,
-      // but for this demo we'll use an RPC or accept the limitation
-      // For now, the other user can join when they search for conversations
-
-      await fetchConversations();
-      setSelectedId(conv.id);
+      const convId = await createDirectConversation(otherUserId);
+      if (convId) setSelectedId(convId);
     },
-    [user, conversations, fetchConversations]
+    [user, createDirectConversation]
   );
 
   return (
