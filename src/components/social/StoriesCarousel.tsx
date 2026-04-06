@@ -1,10 +1,10 @@
-import { useRef, useState } from "react";
-import type { GroupedStories, StoryWithProfile } from "@/hooks/useStories";
+import { useRef, useState, useEffect } from "react";
+import type { GroupedStories } from "@/hooks/useStories";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, X, Eye } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface StoriesCarouselProps {
@@ -17,33 +17,73 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
   const { user } = useAuth();
   const [openGroup, setOpenGroup] = useState<GroupedStories | null>(null);
   const [storyIndex, setStoryIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval>>();
+
+  const STORY_DURATION = 5000;
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) await onCreateStory(file);
+    e.target.value = "";
   };
 
   const openStories = (group: GroupedStories) => {
     setOpenGroup(group);
     setStoryIndex(0);
+    setProgress(0);
     if (group.stories[0]) onMarkViewed(group.stories[0].id);
   };
 
-  const nextStory = () => {
+  const goToStory = (idx: number) => {
     if (!openGroup) return;
-    if (storyIndex < openGroup.stories.length - 1) {
-      const next = storyIndex + 1;
-      setStoryIndex(next);
-      onMarkViewed(openGroup.stories[next].id);
-    } else {
-      setOpenGroup(null);
+    if (idx >= openGroup.stories.length) {
+      // Go to next group
+      const currentGroupIdx = groups.findIndex(g => g.user_id === openGroup.user_id);
+      if (currentGroupIdx < groups.length - 1) {
+        const nextGroup = groups[currentGroupIdx + 1];
+        setOpenGroup(nextGroup);
+        setStoryIndex(0);
+        setProgress(0);
+        if (nextGroup.stories[0]) onMarkViewed(nextGroup.stories[0].id);
+      } else {
+        setOpenGroup(null);
+      }
+      return;
     }
+    if (idx < 0) {
+      const currentGroupIdx = groups.findIndex(g => g.user_id === openGroup.user_id);
+      if (currentGroupIdx > 0) {
+        const prevGroup = groups[currentGroupIdx - 1];
+        setOpenGroup(prevGroup);
+        setStoryIndex(prevGroup.stories.length - 1);
+        setProgress(100);
+        return;
+      }
+      return;
+    }
+    setStoryIndex(idx);
+    setProgress(0);
+    onMarkViewed(openGroup.stories[idx].id);
   };
 
-  const prevStory = () => {
-    if (storyIndex > 0) setStoryIndex(storyIndex - 1);
-  };
+  // Auto-advance timer
+  useEffect(() => {
+    if (!openGroup) return;
+    setProgress(0);
+    const start = Date.now();
+    timerRef.current = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const pct = Math.min((elapsed / STORY_DURATION) * 100, 100);
+      setProgress(pct);
+      if (pct >= 100) {
+        clearInterval(timerRef.current);
+        goToStory(storyIndex + 1);
+      }
+    }, 50);
+    return () => clearInterval(timerRef.current);
+  }, [openGroup?.user_id, storyIndex]);
 
   const currentStory = openGroup?.stories[storyIndex];
 
@@ -51,24 +91,26 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
     <>
       <ScrollArea className="w-full">
         <div className="flex gap-3 px-1 py-2">
-          {/* Add story button */}
-          <button onClick={() => fileRef.current?.click()} className="flex flex-col items-center gap-1">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-primary/50 bg-secondary/50">
-              <Plus className="h-6 w-6 text-primary" />
+          {/* Add story */}
+          <button onClick={() => fileRef.current?.click()} className="flex flex-col items-center gap-1 flex-shrink-0">
+            <div className="relative">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-primary/40 bg-accent">
+                <Plus className="h-6 w-6 text-primary" />
+              </div>
             </div>
-            <span className="text-[10px] text-muted-foreground">Ma story</span>
+            <span className="text-[10px] text-muted-foreground font-medium">Ma story</span>
           </button>
           <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
 
           {groups.map(group => (
-            <button key={group.user_id} onClick={() => openStories(group)} className="flex flex-col items-center gap-1">
-              <div className={`rounded-full p-0.5 ${group.hasUnviewed ? "bg-gradient-to-br from-primary to-destructive" : "bg-muted"}`}>
-                <Avatar className="h-14 w-14 border-2 border-background">
+            <button key={group.user_id} onClick={() => openStories(group)} className="flex flex-col items-center gap-1 flex-shrink-0">
+              <div className={`rounded-full p-[2.5px] ${group.hasUnviewed ? "gradient-story" : "bg-muted"}`}>
+                <Avatar className="h-14 w-14 border-[2.5px] border-background">
                   <AvatarImage src={group.profile.avatar_url || undefined} />
-                  <AvatarFallback>{(group.profile.full_name || "U")[0]}</AvatarFallback>
+                  <AvatarFallback className="text-sm">{(group.profile.full_name || "U")[0]}</AvatarFallback>
                 </Avatar>
               </div>
-              <span className="max-w-[64px] truncate text-[10px] text-foreground">
+              <span className="max-w-[64px] truncate text-[10px] text-foreground font-medium">
                 {group.user_id === user?.id ? "Moi" : group.profile.full_name?.split(" ")[0] || "User"}
               </span>
             </button>
@@ -78,47 +120,62 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
       </ScrollArea>
 
       <Dialog open={!!openGroup} onOpenChange={() => setOpenGroup(null)}>
-        <DialogContent className="max-w-md p-0 overflow-hidden bg-black border-0 [&>button]:hidden">
+        <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 overflow-hidden bg-black border-0 rounded-none [&>button]:hidden">
           {currentStory && (
-            <div className="relative h-[80vh] w-full">
+            <div className="relative h-full w-full flex items-center justify-center">
               {/* Progress bars */}
-              <div className="absolute top-2 left-2 right-2 z-20 flex gap-1">
+              <div className="absolute top-3 left-3 right-3 z-30 flex gap-1">
                 {openGroup!.stories.map((_, i) => (
-                  <div key={i} className="h-0.5 flex-1 rounded-full bg-white/30">
-                    <div className={`h-full rounded-full bg-white transition-all ${i <= storyIndex ? "w-full" : "w-0"}`} />
+                  <div key={i} className="h-[3px] flex-1 rounded-full bg-white/25 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-white transition-all duration-100"
+                      style={{ width: i < storyIndex ? "100%" : i === storyIndex ? `${progress}%` : "0%" }}
+                    />
                   </div>
                 ))}
               </div>
 
               {/* Header */}
-              <div className="absolute top-4 left-2 right-2 z-20 flex items-center justify-between">
+              <div className="absolute top-6 left-3 right-3 z-30 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Avatar className="h-8 w-8 border border-white/50">
+                  <Avatar className="h-9 w-9 border-2 border-white/40">
                     <AvatarImage src={openGroup!.profile.avatar_url || undefined} />
                     <AvatarFallback className="text-xs">{(openGroup!.profile.full_name || "U")[0]}</AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium text-white drop-shadow">{openGroup!.profile.full_name || "Utilisateur"}</span>
+                  <div>
+                    <span className="text-sm font-semibold text-white drop-shadow">{openGroup!.profile.full_name || "Utilisateur"}</span>
+                  </div>
                 </div>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" onClick={() => setOpenGroup(null)}>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-9 w-9" onClick={() => setOpenGroup(null)}>
                   <X className="h-5 w-5" />
                 </Button>
               </div>
 
-              {/* Image */}
+              {/* Image - full screen 9:16 cover */}
               {currentStory.image_url && (
-                <img src={currentStory.image_url} alt="Story" className="h-full w-full object-contain" />
+                <img
+                  src={currentStory.image_url}
+                  alt="Story"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
               )}
 
               {/* Caption */}
               {currentStory.caption && (
-                <div className="absolute bottom-4 left-4 right-4 z-20">
-                  <p className="text-sm text-white drop-shadow-lg">{currentStory.caption}</p>
+                <div className="absolute bottom-16 left-4 right-4 z-30">
+                  <p className="text-base text-white font-medium drop-shadow-lg text-center">{currentStory.caption}</p>
                 </div>
               )}
 
-              {/* Nav */}
-              <button onClick={prevStory} className="absolute left-0 top-0 h-full w-1/3 z-10" />
-              <button onClick={nextStory} className="absolute right-0 top-0 h-full w-2/3 z-10" />
+              {/* View count */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5">
+                <Eye className="h-4 w-4 text-white/70" />
+                <span className="text-xs text-white/70">{currentStory.views_count || 0} vues</span>
+              </div>
+
+              {/* Touch navigation */}
+              <button onClick={() => goToStory(storyIndex - 1)} className="absolute left-0 top-0 h-full w-1/3 z-20" />
+              <button onClick={() => goToStory(storyIndex + 1)} className="absolute right-0 top-0 h-full w-2/3 z-20" />
             </div>
           )}
         </DialogContent>
