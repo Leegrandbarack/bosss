@@ -127,45 +127,14 @@ export function useConversations() {
     async (otherUserId: string) => {
       if (!user) return null;
 
-      // Check if direct conversation already exists
-      const { data: myConvos } = await supabase
-        .from("conversation_participants")
-        .select("conversation_id")
-        .eq("user_id", user.id);
+      const { data, error } = await supabase.functions.invoke("create-conversation", {
+        body: { otherUserId },
+      });
 
-      if (myConvos) {
-        for (const mc of myConvos) {
-          const { data: otherPart } = await supabase
-            .from("conversation_participants")
-            .select("user_id")
-            .eq("conversation_id", mc.conversation_id)
-            .eq("user_id", otherUserId)
-            .single();
-
-          if (otherPart) {
-            return mc.conversation_id;
-          }
-        }
-      }
-
-      const { data: conv, error } = await supabase
-        .from("conversations")
-        .insert({ type: "direct" })
-        .select()
-        .single();
-
-      if (error || !conv) return null;
-
-      await supabase.from("conversation_participants").insert([
-        { conversation_id: conv.id, user_id: user.id },
-      ]);
-
-      // Note: the other user needs to be added too - but RLS only allows adding yourself
-      // For a real app, you'd use an edge function for this
-      // For demo, we'll handle this differently
+      if (error || !data?.conversationId) return null;
 
       await fetchConversations();
-      return conv.id;
+      return data.conversationId as string;
     },
     [user, fetchConversations]
   );
