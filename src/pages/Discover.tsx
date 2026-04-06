@@ -23,9 +23,17 @@ interface UserProfile {
 export default function Discover() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { createDirectConversation } = useConversations();
   const { friends, pendingSent, sendRequest } = useFriends();
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const handleMessage = useCallback(async (otherUserId: string) => {
+    const convId = await createDirectConversation(otherUserId);
+    if (convId) navigate(`/messages?conv=${convId}`);
+    else navigate("/messages");
+  }, [createDirectConversation, navigate]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
