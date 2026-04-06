@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useConversations, usePresence } from "@/hooks/useMessaging";
 import { useAuth } from "@/hooks/useAuth";
+import { useSearchParams } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import ConversationList from "@/components/messaging/ConversationList";
@@ -10,7 +11,8 @@ import { MessageSquare } from "lucide-react";
 export default function Messages() {
   const { user } = useAuth();
   const { conversations, fetchConversations, createDirectConversation } = useConversations();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("conv"));
 
   usePresence();
 
