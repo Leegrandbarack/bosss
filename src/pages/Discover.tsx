@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriends } from "@/hooks/useFriends";
+import { useConversations } from "@/hooks/useMessaging";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -22,10 +23,17 @@ interface UserProfile {
 export default function Discover() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { createDirectConversation } = useConversations();
   const { friends, pendingSent, sendRequest } = useFriends();
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleMessage = useCallback(async (otherUserId: string) => {
+    const convId = await createDirectConversation(otherUserId);
+    if (convId) navigate(`/messages?conv=${convId}`);
+    else navigate("/messages");
+  }, [createDirectConversation, navigate]);
 
   useEffect(() => {
     if (!user) return;
@@ -106,7 +114,7 @@ export default function Discover() {
                         </Button>
                       )}
                       {status === "friend" && (
-                        <Button size="sm" variant="secondary" className="flex-1 text-xs" onClick={() => navigate("/messages")}>
+                        <Button size="sm" variant="secondary" className="flex-1 text-xs" onClick={() => handleMessage(u.user_id)}>
                           <MessageSquare className="mr-1 h-3.5 w-3.5" /> Message
                         </Button>
                       )}
