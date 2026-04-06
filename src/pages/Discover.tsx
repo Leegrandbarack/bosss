@@ -114,7 +114,7 @@ export default function Discover() {
                         </Button>
                       )}
                       {status === "friend" && (
-                        <Button size="sm" variant="secondary" className="flex-1 text-xs" onClick={() => navigate("/messages")}>
+                        <Button size="sm" variant="secondary" className="flex-1 text-xs" onClick={() => handleMessage(u.user_id)}>
                           <MessageSquare className="mr-1 h-3.5 w-3.5" /> Message
                         </Button>
                       )}
