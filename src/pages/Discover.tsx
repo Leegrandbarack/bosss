@@ -34,7 +34,6 @@ export default function Discover() {
     if (convId) navigate(`/messages?conv=${convId}`);
     else navigate("/messages");
   }, [createDirectConversation, navigate]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
