@@ -2,9 +2,9 @@ import { useState } from "react";
 import type { PostWithProfile, Comment } from "@/hooks/usePosts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Heart, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
+import { Heart, MessageCircle, Share2, Send } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -40,76 +40,93 @@ export default function PostCard({ post, onLike, onComment, onFetchComments }: P
   };
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-center gap-3 p-4">
-        <Avatar className="h-10 w-10">
+    <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-3.5">
+        <Avatar className="h-10 w-10 ring-2 ring-accent">
           <AvatarImage src={post.profile.avatar_url || undefined} />
-          <AvatarFallback>{(post.profile.full_name || "U")[0]}</AvatarFallback>
+          <AvatarFallback className="gradient-primary text-primary-foreground text-sm">
+            {(post.profile.full_name || "U")[0]}
+          </AvatarFallback>
         </Avatar>
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-foreground">{post.profile.full_name || post.profile.username || "Utilisateur"}</p>
-          <p className="text-xs text-muted-foreground">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground truncate">{post.profile.full_name || post.profile.username || "Utilisateur"}</p>
+          <p className="text-[11px] text-muted-foreground">
             {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: fr })}
           </p>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
       </div>
 
-      {post.content && <p className="px-4 pb-3 text-sm text-foreground">{post.content}</p>}
+      {/* Content */}
+      {post.content && <p className="px-3.5 pb-2.5 text-sm text-foreground leading-relaxed">{post.content}</p>}
 
+      {/* Image */}
       {post.image_url && (
-        <img src={post.image_url} alt="Post" className="w-full object-cover" style={{ maxHeight: 400 }} />
+        <img src={post.image_url} alt="Post" className="w-full object-cover" style={{ maxHeight: 420 }} />
       )}
 
-      <div className="flex items-center gap-1 border-t border-border px-2 py-1">
+      {/* Stats */}
+      {(post.likes_count > 0 || post.comments_count > 0) && (
+        <div className="flex items-center justify-between px-3.5 py-2 text-xs text-muted-foreground">
+          {post.likes_count > 0 && <span>{post.likes_count} j'aime</span>}
+          {post.comments_count > 0 && (
+            <button onClick={toggleComments} className="hover:underline">
+              {post.comments_count} commentaire{post.comments_count > 1 ? "s" : ""}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center border-t border-border">
         <Button
           variant="ghost"
           size="sm"
-          className={`flex-1 ${post.liked_by_me ? "text-destructive" : "text-muted-foreground"}`}
+          className={`flex-1 rounded-none py-2.5 ${post.liked_by_me ? "text-destructive" : "text-muted-foreground"}`}
           onClick={() => onLike(post.id, post.liked_by_me)}
         >
-          <Heart className={`mr-1 h-4 w-4 ${post.liked_by_me ? "fill-current" : ""}`} />
-          {post.likes_count > 0 && post.likes_count}
+          <Heart className={`mr-1.5 h-[18px] w-[18px] ${post.liked_by_me ? "fill-current" : ""}`} />
+          J'aime
         </Button>
-        <Button variant="ghost" size="sm" className="flex-1 text-muted-foreground" onClick={toggleComments}>
-          <MessageCircle className="mr-1 h-4 w-4" />
-          {post.comments_count > 0 && post.comments_count}
+        <Button variant="ghost" size="sm" className="flex-1 rounded-none py-2.5 text-muted-foreground" onClick={toggleComments}>
+          <MessageCircle className="mr-1.5 h-[18px] w-[18px]" />
+          Commenter
         </Button>
-        <Button variant="ghost" size="sm" className="flex-1 text-muted-foreground">
-          <Share2 className="mr-1 h-4 w-4" />
+        <Button variant="ghost" size="sm" className="flex-1 rounded-none py-2.5 text-muted-foreground">
+          <Share2 className="mr-1.5 h-[18px] w-[18px]" />
+          Partager
         </Button>
       </div>
 
+      {/* Comments */}
       {showComments && (
-        <div className="border-t border-border p-3 space-y-3">
+        <div className="border-t border-border p-3 space-y-3 bg-secondary/30">
           {loadingComments ? (
-            <p className="text-xs text-muted-foreground text-center">Chargement…</p>
+            <p className="text-xs text-muted-foreground text-center py-2">Chargement…</p>
           ) : (
             comments.map(c => (
               <div key={c.id} className="flex gap-2">
-                <Avatar className="h-7 w-7">
+                <Avatar className="h-7 w-7 flex-shrink-0">
                   <AvatarImage src={c.profile.avatar_url || undefined} />
-                  <AvatarFallback className="text-xs">{(c.profile.full_name || "U")[0]}</AvatarFallback>
+                  <AvatarFallback className="text-[10px]">{(c.profile.full_name || "U")[0]}</AvatarFallback>
                 </Avatar>
-                <div className="rounded-lg bg-secondary/50 px-3 py-1.5">
-                  <p className="text-xs font-medium text-foreground">{c.profile.full_name || "Utilisateur"}</p>
-                  <p className="text-xs text-foreground">{c.content}</p>
+                <div className="rounded-2xl bg-secondary px-3 py-1.5 max-w-[85%]">
+                  <p className="text-xs font-semibold text-foreground">{c.profile.full_name || "Utilisateur"}</p>
+                  <p className="text-xs text-foreground/90">{c.content}</p>
                 </div>
               </div>
             ))
           )}
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <Input
               placeholder="Écrire un commentaire…"
               value={commentText}
               onChange={e => setCommentText(e.target.value)}
               onKeyDown={e => e.key === "Enter" && submitComment()}
-              className="text-sm"
+              className="text-sm rounded-full bg-secondary border-0"
             />
-            <Button size="sm" onClick={submitComment} disabled={!commentText.trim()}>
-              Envoyer
+            <Button size="icon" className="h-9 w-9 rounded-full gradient-primary border-0 flex-shrink-0" onClick={submitComment} disabled={!commentText.trim()}>
+              <Send className="h-4 w-4" />
             </Button>
           </div>
         </div>

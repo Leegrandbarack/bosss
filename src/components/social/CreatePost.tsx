@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -37,33 +36,33 @@ export default function CreatePost({ onSubmit, avatarUrl, fullName }: CreatePost
   };
 
   return (
-    <Card className="p-4">
+    <Card className="p-4 shadow-sm">
       <div className="flex gap-3">
-        <Avatar className="h-10 w-10">
+        <Avatar className="h-10 w-10 ring-2 ring-accent flex-shrink-0">
           <AvatarImage src={avatarUrl || undefined} />
-          <AvatarFallback>{(fullName || "U")[0]}</AvatarFallback>
+          <AvatarFallback className="gradient-primary text-primary-foreground">{(fullName || "U")[0]}</AvatarFallback>
         </Avatar>
         <div className="flex-1 space-y-3">
           <Textarea
             placeholder="Quoi de neuf ?"
             value={content}
             onChange={e => setContent(e.target.value)}
-            className="min-h-[60px] resize-none border-0 bg-secondary/50 focus-visible:ring-1"
+            className="min-h-[50px] resize-none border-0 bg-secondary/50 rounded-2xl focus-visible:ring-1 focus-visible:ring-primary/30"
           />
           {preview && (
             <div className="relative inline-block">
-              <img src={preview} alt="Preview" className="max-h-48 rounded-lg object-cover" />
-              <button onClick={() => { setImageFile(null); setPreview(null); }} className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground">
+              <img src={preview} alt="Preview" className="max-h-48 rounded-xl object-cover" />
+              <button onClick={() => { setImageFile(null); setPreview(null); }} className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground shadow-md">
                 <X className="h-3 w-3" />
               </button>
             </div>
           )}
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
-              <Image className="mr-1 h-4 w-4" /> Photo
+            <Button variant="ghost" size="sm" className="text-muted-foreground rounded-full" onClick={() => fileRef.current?.click()}>
+              <Image className="mr-1.5 h-4 w-4" /> Photo
             </Button>
-            <Button size="sm" onClick={handleSubmit} disabled={submitting || (!content.trim() && !imageFile)}>
-              <Send className="mr-1 h-4 w-4" /> Publier
+            <Button size="sm" onClick={handleSubmit} disabled={submitting || (!content.trim() && !imageFile)} className="rounded-full gradient-primary border-0 px-5">
+              <Send className="mr-1.5 h-4 w-4" /> Publier
             </Button>
           </div>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
