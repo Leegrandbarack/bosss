@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useConversations, usePresence } from "@/hooks/useMessaging";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchParams } from "react-router-dom";
@@ -10,7 +10,7 @@ import { MessageSquare } from "lucide-react";
 
 export default function Messages() {
   const { user } = useAuth();
-  const { conversations, fetchConversations, createDirectConversation } = useConversations();
+  const { conversations, createDirectConversation } = useConversations();
   const [searchParams] = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("conv"));
 
@@ -33,7 +33,6 @@ export default function Messages() {
     <div className="flex h-screen flex-col bg-background">
       <AppHeader />
       <div className="flex flex-1 overflow-hidden">
-        {/* Conversation list - hidden on mobile when chat is open */}
         <div
           className={`w-full md:w-80 lg:w-96 flex-shrink-0 ${
             selectedId ? "hidden md:flex md:flex-col" : "flex flex-col"
@@ -47,7 +46,6 @@ export default function Messages() {
           />
         </div>
 
-        {/* Chat view */}
         <div className={`flex-1 ${!selectedId ? "hidden md:flex" : "flex"}`}>
           {selectedId && selected ? (
             <div className="flex-1">
@@ -60,9 +58,11 @@ export default function Messages() {
             </div>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
-              <MessageSquare className="h-16 w-16 mb-4" />
+              <div className="gradient-primary rounded-full p-5 mb-4 opacity-20">
+                <MessageSquare className="h-12 w-12 text-primary-foreground" />
+              </div>
               <p className="text-lg font-medium">Sélectionnez une conversation</p>
-              <p className="text-sm">ou créez-en une nouvelle</p>
+              <p className="text-sm mt-1">ou créez-en une nouvelle</p>
             </div>
           )}
         </div>

@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Eye } from "lucide-react";
+import { Plus, X, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface StoriesCarouselProps {
@@ -18,8 +18,10 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
   const [openGroup, setOpenGroup] = useState<GroupedStories | null>(null);
   const [storyIndex, setStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [paused, setPaused] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const STORY_DURATION = 5000;
 
@@ -39,7 +41,6 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
   const goToStory = (idx: number) => {
     if (!openGroup) return;
     if (idx >= openGroup.stories.length) {
-      // Go to next group
       const currentGroupIdx = groups.findIndex(g => g.user_id === openGroup.user_id);
       if (currentGroupIdx < groups.length - 1) {
         const nextGroup = groups[currentGroupIdx + 1];
@@ -70,7 +71,11 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
 
   // Auto-advance timer
   useEffect(() => {
-    if (!openGroup) return;
+    if (!openGroup || paused) return;
+    const currentStory = openGroup.stories[storyIndex];
+    const isVideo = !!currentStory?.video_url;
+    if (isVideo) return; // Video controls its own timing
+
     setProgress(0);
     const start = Date.now();
     timerRef.current = setInterval(() => {
@@ -83,34 +88,35 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
       }
     }, 50);
     return () => clearInterval(timerRef.current);
-  }, [openGroup?.user_id, storyIndex]);
+  }, [openGroup?.user_id, storyIndex, paused]);
 
   const currentStory = openGroup?.stories[storyIndex];
+  const isVideo = !!currentStory?.video_url;
 
   return (
     <>
       <ScrollArea className="w-full">
         <div className="flex gap-3 px-1 py-2">
           {/* Add story */}
-          <button onClick={() => fileRef.current?.click()} className="flex flex-col items-center gap-1 flex-shrink-0">
+          <button onClick={() => fileRef.current?.click()} className="flex flex-col items-center gap-1.5 flex-shrink-0 group">
             <div className="relative">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-primary/40 bg-accent">
+              <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full border-2 border-dashed border-primary/40 bg-accent transition-all group-hover:border-primary group-hover:bg-accent/80">
                 <Plus className="h-6 w-6 text-primary" />
               </div>
             </div>
             <span className="text-[10px] text-muted-foreground font-medium">Ma story</span>
           </button>
-          <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
+          <input ref={fileRef} type="file" accept="image/*,video/mp4,video/webm" className="hidden" onChange={handleFileSelect} />
 
           {groups.map(group => (
-            <button key={group.user_id} onClick={() => openStories(group)} className="flex flex-col items-center gap-1 flex-shrink-0">
-              <div className={`rounded-full p-[2.5px] ${group.hasUnviewed ? "gradient-story" : "bg-muted"}`}>
-                <Avatar className="h-14 w-14 border-[2.5px] border-background">
-                  <AvatarImage src={group.profile.avatar_url || undefined} />
-                  <AvatarFallback className="text-sm">{(group.profile.full_name || "U")[0]}</AvatarFallback>
+            <button key={group.user_id} onClick={() => openStories(group)} className="flex flex-col items-center gap-1.5 flex-shrink-0 group">
+              <div className={`rounded-full p-[2.5px] transition-all ${group.hasUnviewed ? "gradient-story" : "bg-muted"}`}>
+                <Avatar className="h-[62px] w-[62px] border-[3px] border-background">
+                  <AvatarImage src={group.profile.avatar_url || undefined} className="object-cover" />
+                  <AvatarFallback className="text-sm gradient-primary text-primary-foreground">{(group.profile.full_name || "U")[0]}</AvatarFallback>
                 </Avatar>
               </div>
-              <span className="max-w-[64px] truncate text-[10px] text-foreground font-medium">
+              <span className="max-w-[68px] truncate text-[10px] text-foreground font-medium">
                 {group.user_id === user?.id ? "Moi" : group.profile.full_name?.split(" ")[0] || "User"}
               </span>
             </button>
@@ -122,7 +128,13 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
       <Dialog open={!!openGroup} onOpenChange={() => setOpenGroup(null)}>
         <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 overflow-hidden bg-black border-0 rounded-none [&>button]:hidden">
           {currentStory && (
-            <div className="relative h-full w-full flex items-center justify-center">
+            <div
+              className="relative h-full w-full flex items-center justify-center"
+              onMouseDown={() => setPaused(true)}
+              onMouseUp={() => setPaused(false)}
+              onTouchStart={() => setPaused(true)}
+              onTouchEnd={() => setPaused(false)}
+            >
               {/* Progress bars */}
               <div className="absolute top-3 left-3 right-3 z-30 flex gap-1">
                 {openGroup!.stories.map((_, i) => (
@@ -136,46 +148,74 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
               </div>
 
               {/* Header */}
-              <div className="absolute top-6 left-3 right-3 z-30 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-9 w-9 border-2 border-white/40">
+              <div className="absolute top-7 left-3 right-3 z-30 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <Avatar className="h-10 w-10 border-2 border-white/40">
                     <AvatarImage src={openGroup!.profile.avatar_url || undefined} />
-                    <AvatarFallback className="text-xs">{(openGroup!.profile.full_name || "U")[0]}</AvatarFallback>
+                    <AvatarFallback className="text-xs gradient-primary text-primary-foreground">{(openGroup!.profile.full_name || "U")[0]}</AvatarFallback>
                   </Avatar>
-                  <div>
-                    <span className="text-sm font-semibold text-white drop-shadow">{openGroup!.profile.full_name || "Utilisateur"}</span>
-                  </div>
+                  <span className="text-sm font-semibold text-white drop-shadow-lg">{openGroup!.profile.full_name || "Utilisateur"}</span>
                 </div>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-9 w-9" onClick={() => setOpenGroup(null)}>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-10 w-10 rounded-full" onClick={() => setOpenGroup(null)}>
                   <X className="h-5 w-5" />
                 </Button>
               </div>
 
-              {/* Image - full screen 9:16 cover */}
-              {currentStory.image_url && (
+              {/* Media */}
+              {isVideo && currentStory.video_url ? (
+                <video
+                  ref={videoRef}
+                  src={currentStory.video_url}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  autoPlay
+                  playsInline
+                  muted={false}
+                  onEnded={() => goToStory(storyIndex + 1)}
+                  onTimeUpdate={() => {
+                    if (videoRef.current) {
+                      const pct = (videoRef.current.currentTime / videoRef.current.duration) * 100;
+                      setProgress(pct);
+                    }
+                  }}
+                />
+              ) : currentStory.image_url ? (
                 <img
                   src={currentStory.image_url}
                   alt="Story"
                   className="absolute inset-0 h-full w-full object-cover"
                 />
-              )}
+              ) : null}
 
               {/* Caption */}
               {currentStory.caption && (
-                <div className="absolute bottom-16 left-4 right-4 z-30">
-                  <p className="text-base text-white font-medium drop-shadow-lg text-center">{currentStory.caption}</p>
+                <div className="absolute bottom-20 left-4 right-4 z-30">
+                  <p className="text-base text-white font-medium drop-shadow-lg text-center bg-black/20 backdrop-blur-sm rounded-xl px-4 py-2">{currentStory.caption}</p>
                 </div>
               )}
 
               {/* View count */}
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5">
-                <Eye className="h-4 w-4 text-white/70" />
-                <span className="text-xs text-white/70">{currentStory.views_count || 0} vues</span>
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full px-3 py-1.5">
+                <Eye className="h-3.5 w-3.5 text-white/80" />
+                <span className="text-xs text-white/80 font-medium">{currentStory.views_count || 0} vues</span>
               </div>
 
-              {/* Touch navigation */}
-              <button onClick={() => goToStory(storyIndex - 1)} className="absolute left-0 top-0 h-full w-1/3 z-20" />
-              <button onClick={() => goToStory(storyIndex + 1)} className="absolute right-0 top-0 h-full w-2/3 z-20" />
+              {/* Nav buttons - desktop */}
+              <button
+                onClick={() => goToStory(storyIndex - 1)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 hidden md:flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                <ChevronLeft className="h-6 w-6 text-white" />
+              </button>
+              <button
+                onClick={() => goToStory(storyIndex + 1)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 hidden md:flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                <ChevronRight className="h-6 w-6 text-white" />
+              </button>
+
+              {/* Touch navigation - mobile */}
+              <button onClick={() => goToStory(storyIndex - 1)} className="absolute left-0 top-0 h-full w-1/3 z-20 md:hidden" />
+              <button onClick={() => goToStory(storyIndex + 1)} className="absolute right-0 top-0 h-full w-2/3 z-20 md:hidden" />
             </div>
           )}
         </DialogContent>
