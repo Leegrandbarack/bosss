@@ -27,33 +27,38 @@ export default function Feed() {
       <main className="flex-1 pb-20">
         <div className="mx-auto max-w-lg space-y-4 px-4 py-4">
           {/* Stories */}
-          <StoriesCarousel groups={groupedStories} onCreateStory={createStory} onMarkViewed={markViewed} />
+          <div className="animate-fade-in">
+            <StoriesCarousel groups={groupedStories} onCreateStory={createStory} onMarkViewed={markViewed} />
+          </div>
 
           {/* Create Post */}
-          <CreatePost onSubmit={createPost} avatarUrl={profile?.avatar_url} fullName={profile?.full_name} />
+          <div className="animate-slide-up">
+            <CreatePost onSubmit={createPost} avatarUrl={profile?.avatar_url} fullName={profile?.full_name} />
+          </div>
 
           {/* Feed */}
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="space-y-3">
-                <Skeleton className="h-16 w-full rounded-lg" />
-                <Skeleton className="h-48 w-full rounded-lg" />
+              <div key={i} className="space-y-3 animate-pulse">
+                <Skeleton className="h-16 w-full rounded-xl" />
+                <Skeleton className="h-48 w-full rounded-xl" />
               </div>
             ))
           ) : posts.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
+            <div className="py-16 text-center text-muted-foreground animate-fade-in">
               <p className="text-lg font-medium">Aucune publication</p>
-              <p className="text-sm">Ajoutez des amis pour voir leurs posts ici !</p>
+              <p className="text-sm mt-1">Ajoutez des amis ou publiez votre premier post !</p>
             </div>
           ) : (
-            posts.map(post => (
-              <PostCard
-                key={post.id}
-                post={post}
-                onLike={toggleLike}
-                onComment={addComment}
-                onFetchComments={fetchComments}
-              />
+            posts.map((post, i) => (
+              <div key={post.id} className="animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
+                <PostCard
+                  post={post}
+                  onLike={toggleLike}
+                  onComment={addComment}
+                  onFetchComments={fetchComments}
+                />
+              </div>
             ))
           )}
         </div>
