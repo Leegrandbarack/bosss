@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import type { PostWithProfile, Comment } from "@/hooks/usePosts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Heart, MessageCircle, Share2, Send } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import LazyImage from "./LazyImage";
 
 interface PostCardProps {
   post: PostWithProfile;
@@ -15,7 +16,7 @@ interface PostCardProps {
   onFetchComments: (postId: string) => Promise<Comment[]>;
 }
 
-export default function PostCard({ post, onLike, onComment, onFetchComments }: PostCardProps) {
+function PostCard({ post, onLike, onComment, onFetchComments }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
@@ -41,7 +42,6 @@ export default function PostCard({ post, onLike, onComment, onFetchComments }: P
 
   return (
     <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      {/* Header */}
       <div className="flex items-center gap-3 p-3.5">
         <Avatar className="h-10 w-10 ring-2 ring-accent">
           <AvatarImage src={post.profile.avatar_url || undefined} />
@@ -57,15 +57,12 @@ export default function PostCard({ post, onLike, onComment, onFetchComments }: P
         </div>
       </div>
 
-      {/* Content */}
       {post.content && <p className="px-3.5 pb-2.5 text-sm text-foreground leading-relaxed">{post.content}</p>}
 
-      {/* Image */}
       {post.image_url && (
-        <img src={post.image_url} alt="Post" className="w-full object-cover" style={{ maxHeight: 420 }} />
+        <LazyImage src={post.image_url} alt="Post" className="w-full" style={{ maxHeight: 420 }} />
       )}
 
-      {/* Stats */}
       {(post.likes_count > 0 || post.comments_count > 0) && (
         <div className="flex items-center justify-between px-3.5 py-2 text-xs text-muted-foreground">
           {post.likes_count > 0 && <span>{post.likes_count} j'aime</span>}
@@ -77,7 +74,6 @@ export default function PostCard({ post, onLike, onComment, onFetchComments }: P
         </div>
       )}
 
-      {/* Actions */}
       <div className="flex items-center border-t border-border">
         <Button
           variant="ghost"
@@ -98,7 +94,6 @@ export default function PostCard({ post, onLike, onComment, onFetchComments }: P
         </Button>
       </div>
 
-      {/* Comments */}
       {showComments && (
         <div className="border-t border-border p-3 space-y-3 bg-secondary/30">
           {loadingComments ? (
@@ -134,3 +129,5 @@ export default function PostCard({ post, onLike, onComment, onFetchComments }: P
     </Card>
   );
 }
+
+export default memo(PostCard);
