@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, X, Eye, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface StoriesCarouselProps {
@@ -19,6 +19,7 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
   const [storyIndex, setStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [videoPaused, setVideoPaused] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -27,7 +28,23 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) await onCreateStory(file);
+    if (!file) return;
+    // Validate file type
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+    if (!isImage && !isVideo) {
+      alert("Format non supporté. Utilisez une image ou vidéo (mp4, mov, webm).");
+      e.target.value = "";
+      return;
+    }
+    // Size limit: 50MB for video, 5MB for image
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(`Fichier trop volumineux (max ${isVideo ? "50" : "5"} Mo)`);
+      e.target.value = "";
+      return;
+    }
+    await onCreateStory(file);
     e.target.value = "";
   };
 
@@ -35,6 +52,8 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
     setOpenGroup(group);
     setStoryIndex(0);
     setProgress(0);
+    setPaused(false);
+    setVideoPaused(false);
     if (group.stories[0]) onMarkViewed(group.stories[0].id);
   };
 
@@ -47,6 +66,8 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
         setOpenGroup(nextGroup);
         setStoryIndex(0);
         setProgress(0);
+        setPaused(false);
+        setVideoPaused(false);
         if (nextGroup.stories[0]) onMarkViewed(nextGroup.stories[0].id);
       } else {
         setOpenGroup(null);
@@ -66,15 +87,30 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
     }
     setStoryIndex(idx);
     setProgress(0);
+    setPaused(false);
+    setVideoPaused(false);
     onMarkViewed(openGroup.stories[idx].id);
   };
 
-  // Auto-advance timer
+  const toggleVideoPause = () => {
+    if (!videoRef.current) return;
+    if (videoRef.current.paused) {
+      videoRef.current.play();
+      setVideoPaused(false);
+      setPaused(false);
+    } else {
+      videoRef.current.pause();
+      setVideoPaused(true);
+      setPaused(true);
+    }
+  };
+
+  // Auto-advance timer for images
   useEffect(() => {
     if (!openGroup || paused) return;
     const currentStory = openGroup.stories[storyIndex];
     const isVideo = !!currentStory?.video_url;
-    if (isVideo) return; // Video controls its own timing
+    if (isVideo) return;
 
     setProgress(0);
     const start = Date.now();
@@ -106,7 +142,7 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
             </div>
             <span className="text-[10px] text-muted-foreground font-medium">Ma story</span>
           </button>
-          <input ref={fileRef} type="file" accept="image/*,video/mp4,video/webm" className="hidden" onChange={handleFileSelect} />
+          <input ref={fileRef} type="file" accept="image/*,video/mp4,video/mov,video/webm" className="hidden" onChange={handleFileSelect} />
 
           {groups.map(group => (
             <button key={group.user_id} onClick={() => openStories(group)} className="flex flex-col items-center gap-1.5 flex-shrink-0 group">
@@ -128,13 +164,7 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
       <Dialog open={!!openGroup} onOpenChange={() => setOpenGroup(null)}>
         <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 overflow-hidden bg-black border-0 rounded-none [&>button]:hidden">
           {currentStory && (
-            <div
-              className="relative h-full w-full flex items-center justify-center"
-              onMouseDown={() => setPaused(true)}
-              onMouseUp={() => setPaused(false)}
-              onTouchStart={() => setPaused(true)}
-              onTouchEnd={() => setPaused(false)}
-            >
+            <div className="relative h-full w-full flex items-center justify-center">
               {/* Progress bars */}
               <div className="absolute top-3 left-3 right-3 z-30 flex gap-1">
                 {openGroup!.stories.map((_, i) => (
@@ -156,9 +186,16 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
                   </Avatar>
                   <span className="text-sm font-semibold text-white drop-shadow-lg">{openGroup!.profile.full_name || "Utilisateur"}</span>
                 </div>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-10 w-10 rounded-full" onClick={() => setOpenGroup(null)}>
-                  <X className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  {isVideo && (
+                    <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-10 w-10 rounded-full" onClick={toggleVideoPause}>
+                      {videoPaused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-10 w-10 rounded-full" onClick={() => setOpenGroup(null)}>
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
 
               {/* Media */}
@@ -166,7 +203,7 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
                 <video
                   ref={videoRef}
                   src={currentStory.video_url}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-contain bg-black"
                   autoPlay
                   playsInline
                   muted={false}
@@ -182,14 +219,14 @@ export default function StoriesCarousel({ groups, onCreateStory, onMarkViewed }:
                 <img
                   src={currentStory.image_url}
                   alt="Story"
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-contain bg-black"
                 />
               ) : null}
 
               {/* Caption */}
               {currentStory.caption && (
                 <div className="absolute bottom-20 left-4 right-4 z-30">
-                  <p className="text-base text-white font-medium drop-shadow-lg text-center bg-black/20 backdrop-blur-sm rounded-xl px-4 py-2">{currentStory.caption}</p>
+                  <p className="text-base text-white font-medium drop-shadow-lg text-center bg-black/30 backdrop-blur-sm rounded-xl px-4 py-2">{currentStory.caption}</p>
                 </div>
               )}
 

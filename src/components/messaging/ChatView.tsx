@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Send,
   Paperclip,
@@ -38,19 +37,16 @@ export default function ChatView({ conversationId, participants, title, onBack }
 
   const other = participants.find((p) => p.user_id !== user?.id);
 
-  // Auto-scroll
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
-  // Mark as read
   useEffect(() => {
     markAsRead();
   }, [messages.length, markAsRead]);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -108,7 +104,6 @@ export default function ChatView({ conversationId, participants, title, onBack }
     setRecording(false);
   }, []);
 
-  // Group messages by date
   const groupedByDate: { date: string; msgs: typeof messages }[] = [];
   messages.forEach((msg) => {
     const dateStr = format(new Date(msg.created_at), "d MMMM yyyy", { locale: fr });
@@ -123,7 +118,7 @@ export default function ChatView({ conversationId, participants, title, onBack }
   return (
     <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border bg-card/80 glass px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-border bg-card/80 glass px-4 py-3 flex-shrink-0">
         {onBack && (
           <Button variant="ghost" size="icon" onClick={onBack} className="md:hidden h-9 w-9 rounded-full">
             <ArrowLeft className="h-5 w-5" />
@@ -151,8 +146,8 @@ export default function ChatView({ conversationId, participants, title, onBack }
         </div>
       </div>
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-1">
+      {/* Messages — scrollable area */}
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-1">
         {groupedByDate.map(({ date, msgs }) => (
           <div key={date}>
             <div className="flex justify-center my-3">
@@ -219,8 +214,8 @@ export default function ChatView({ conversationId, participants, title, onBack }
         ))}
       </div>
 
-      {/* Input bar */}
-      <div className="border-t border-border bg-card/80 glass p-3">
+      {/* Input bar — always fixed at bottom, never hidden */}
+      <div className="border-t border-border bg-card/95 glass p-3 flex-shrink-0" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
         <div className="flex items-end gap-2">
           <input
             ref={imageInputRef}

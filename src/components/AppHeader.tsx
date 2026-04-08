@@ -1,11 +1,10 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Moon, Sun } from "lucide-react";
+import { Moon, Sun, Settings } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 export default function AppHeader() {
-  const { signOut } = useAuth();
   const navigate = useNavigate();
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
 
@@ -22,11 +21,6 @@ export default function AppHeader() {
     }
   }, []);
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/login");
-  };
-
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 glass">
       <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-2.5">
@@ -37,8 +31,8 @@ export default function AppHeader() {
           <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => setDark(!dark)}>
             {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={handleSignOut}>
-            <LogOut className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => navigate("/settings")}>
+            <Settings className="h-5 w-5" />
           </Button>
         </div>
       </div>
