@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -29,6 +29,8 @@ export function usePosts() {
   const { user } = useAuth();
   const [posts, setPosts] = useState<PostWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const postsRef = useRef(posts);
+  postsRef.current = posts;
 
   const fetchPosts = useCallback(async () => {
     if (!user) return;
@@ -82,25 +84,49 @@ export function usePosts() {
     toast.success("Post publié !");
   }, [user]);
 
+  // Optimistic like toggle — update UI immediately, then sync with DB
   const toggleLike = useCallback(async (postId: string, liked: boolean) => {
     if (!user) return;
-    if (liked) {
-      await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", user.id);
-      await supabase.from("posts").update({ likes_count: Math.max(0, (posts.find(p => p.id === postId)?.likes_count || 1) - 1) }).eq("id", postId);
-    } else {
-      await supabase.from("post_likes").insert({ post_id: postId, user_id: user.id });
-      await supabase.from("posts").update({ likes_count: (posts.find(p => p.id === postId)?.likes_count || 0) + 1 }).eq("id", postId);
+
+    // Optimistic update
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p;
+      return {
+        ...p,
+        liked_by_me: !liked,
+        likes_count: liked ? Math.max(0, p.likes_count - 1) : p.likes_count + 1,
+      };
+    }));
+
+    try {
+      if (liked) {
+        await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", user.id);
+        const current = postsRef.current.find(p => p.id === postId);
+        await supabase.from("posts").update({ likes_count: Math.max(0, (current?.likes_count ?? 1) - 1) }).eq("id", postId);
+      } else {
+        await supabase.from("post_likes").insert({ post_id: postId, user_id: user.id });
+        const current = postsRef.current.find(p => p.id === postId);
+        await supabase.from("posts").update({ likes_count: (current?.likes_count ?? 0) + 1 }).eq("id", postId);
+      }
+    } catch {
+      // Revert on error
+      fetchPosts();
     }
-    fetchPosts();
-  }, [user, posts, fetchPosts]);
+  }, [user, fetchPosts]);
 
   const addComment = useCallback(async (postId: string, content: string) => {
     if (!user) return;
+    // Optimistic comment count
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p));
+
     const { error } = await supabase.from("post_comments").insert({ post_id: postId, user_id: user.id, content });
-    if (error) { toast.error("Erreur commentaire"); return; }
-    await supabase.from("posts").update({ comments_count: (posts.find(p => p.id === postId)?.comments_count || 0) + 1 }).eq("id", postId);
-    fetchPosts();
-  }, [user, posts, fetchPosts]);
+    if (error) {
+      toast.error("Erreur commentaire");
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments_count: Math.max(0, p.comments_count - 1) } : p));
+      return;
+    }
+    await supabase.from("posts").update({ comments_count: (postsRef.current.find(p => p.id === postId)?.comments_count || 0) + 1 }).eq("id", postId);
+  }, [user]);
 
   const fetchComments = useCallback(async (postId: string): Promise<Comment[]> => {
     const { data, error } = await supabase.from("post_comments").select("*").eq("post_id", postId).order("created_at", { ascending: true });
