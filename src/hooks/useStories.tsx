@@ -64,7 +64,6 @@ export function useStories() {
       if (!s.viewed) grouped[s.user_id].hasUnviewed = true;
     });
 
-    // Put current user's stories first
     const sorted = Object.values(grouped).sort((a, b) => {
       if (a.user_id === user.id) return -1;
       if (b.user_id === user.id) return 1;
@@ -77,14 +76,29 @@ export function useStories() {
 
   useEffect(() => { fetchStories(); }, [fetchStories]);
 
-  const createStory = useCallback(async (imageFile: File, caption?: string) => {
+  const createStory = useCallback(async (file: File, caption?: string) => {
     if (!user) return;
-    const path = `${user.id}/${Date.now()}_${imageFile.name}`;
-    const { error: upErr } = await supabase.storage.from("post-media").upload(path, imageFile);
+
+    const isVideo = file.type.startsWith("video/");
+    const isImage = file.type.startsWith("image/");
+    if (!isVideo && !isImage) {
+      toast.error("Format non supporté");
+      return;
+    }
+
+    const path = `${user.id}/${Date.now()}_${file.name}`;
+    const { error: upErr } = await supabase.storage.from("post-media").upload(path, file);
     if (upErr) { toast.error("Erreur upload"); return; }
     const { data: urlData } = supabase.storage.from("post-media").getPublicUrl(path);
 
-    const { error } = await supabase.from("stories").insert({ user_id: user.id, image_url: urlData.publicUrl, caption });
+    const insertData: any = { user_id: user.id, caption };
+    if (isVideo) {
+      insertData.video_url = urlData.publicUrl;
+    } else {
+      insertData.image_url = urlData.publicUrl;
+    }
+
+    const { error } = await supabase.from("stories").insert(insertData);
     if (error) { toast.error("Erreur story"); return; }
     toast.success("Story publiée !");
     fetchStories();

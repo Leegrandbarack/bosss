@@ -30,9 +30,9 @@ export default function Messages() {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex flex-col bg-background" style={{ height: "100dvh" }}>
       <AppHeader />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         <div
           className={`w-full md:w-80 lg:w-96 flex-shrink-0 ${
             selectedId ? "hidden md:flex md:flex-col" : "flex flex-col"
@@ -46,9 +46,9 @@ export default function Messages() {
           />
         </div>
 
-        <div className={`flex-1 ${!selectedId ? "hidden md:flex" : "flex"}`}>
+        <div className={`flex-1 min-h-0 ${!selectedId ? "hidden md:flex" : "flex"}`}>
           {selectedId && selected ? (
-            <div className="flex-1">
+            <div className="flex-1 min-h-0 flex flex-col">
               <ChatView
                 conversationId={selectedId}
                 participants={selected.participants || []}
@@ -67,7 +67,10 @@ export default function Messages() {
           )}
         </div>
       </div>
-      <BottomNav />
+      {/* Hide BottomNav when chat is open on mobile */}
+      <div className={selectedId ? "hidden md:block" : ""}>
+        <BottomNav />
+      </div>
     </div>
   );
 }
