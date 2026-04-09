@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Feed() {
   const { user } = useAuth();
-  const { posts, loading, createPost, toggleLike, addComment, fetchComments } = usePosts();
+  const { posts, loading, createPost, react, unreact, addComment, fetchComments } = usePosts();
   const { groupedStories, createStory, markViewed } = useStories();
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
 
@@ -26,17 +26,12 @@ export default function Feed() {
       <AppHeader />
       <main className="flex-1 pb-20">
         <div className="mx-auto max-w-lg space-y-4 px-4 py-4">
-          {/* Stories */}
           <div className="animate-fade-in">
             <StoriesCarousel groups={groupedStories} onCreateStory={createStory} onMarkViewed={markViewed} />
           </div>
-
-          {/* Create Post */}
           <div className="animate-slide-up">
             <CreatePost onSubmit={createPost} avatarUrl={profile?.avatar_url} fullName={profile?.full_name} />
           </div>
-
-          {/* Feed */}
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="space-y-3 animate-pulse">
@@ -54,7 +49,8 @@ export default function Feed() {
               <div key={post.id} className="animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
                 <PostCard
                   post={post}
-                  onLike={toggleLike}
+                  onReact={react}
+                  onUnreact={unreact}
                   onComment={addComment}
                   onFetchComments={fetchComments}
                 />

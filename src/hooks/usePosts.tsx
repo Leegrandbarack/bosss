@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import type { ReactionType } from "@/components/social/ReactionPicker";
 
 export interface PostWithProfile {
   id: string;
@@ -14,6 +15,8 @@ export interface PostWithProfile {
   created_at: string;
   profile: { full_name: string | null; avatar_url: string | null; username: string | null };
   liked_by_me: boolean;
+  my_reaction: string | null;
+  reactions_summary: Record<string, number>;
 }
 
 export interface Comment {
@@ -45,17 +48,34 @@ export function usePosts() {
     if (error || !data) { setLoading(false); return; }
 
     const userIds = [...new Set(data.map(p => p.user_id))];
-    const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, avatar_url, username").in("user_id", userIds);
+    const postIds = data.map(p => p.id);
+
+    const [{ data: profiles }, { data: myLikes }, { data: allLikes }] = await Promise.all([
+      supabase.from("profiles").select("user_id, full_name, avatar_url, username").in("user_id", userIds),
+      supabase.from("post_likes").select("post_id, reaction_type").eq("user_id", user.id).in("post_id", postIds),
+      supabase.from("post_likes").select("post_id, reaction_type").in("post_id", postIds),
+    ]);
+
     const profileMap: Record<string, any> = {};
     (profiles || []).forEach(p => { profileMap[p.user_id] = p; });
 
-    const { data: myLikes } = await supabase.from("post_likes").select("post_id").eq("user_id", user.id);
-    const likedSet = new Set((myLikes || []).map(l => l.post_id));
+    const myReactionMap: Record<string, string> = {};
+    (myLikes || []).forEach(l => { myReactionMap[l.post_id] = l.reaction_type; });
+
+    // Build reactions summary per post
+    const reactionsSummaryMap: Record<string, Record<string, number>> = {};
+    (allLikes || []).forEach(l => {
+      if (!reactionsSummaryMap[l.post_id]) reactionsSummaryMap[l.post_id] = {};
+      const t = l.reaction_type || "like";
+      reactionsSummaryMap[l.post_id][t] = (reactionsSummaryMap[l.post_id][t] || 0) + 1;
+    });
 
     setPosts(data.map(p => ({
       ...p,
       profile: profileMap[p.user_id] || { full_name: null, avatar_url: null, username: null },
-      liked_by_me: likedSet.has(p.id),
+      liked_by_me: !!myReactionMap[p.id],
+      my_reaction: myReactionMap[p.id] || null,
+      reactions_summary: reactionsSummaryMap[p.id] || {},
     })));
     setLoading(false);
   }, [user]);
@@ -84,39 +104,68 @@ export function usePosts() {
     toast.success("Post publié !");
   }, [user]);
 
-  // Optimistic like toggle — update UI immediately, then sync with DB
-  const toggleLike = useCallback(async (postId: string, liked: boolean) => {
+  const react = useCallback(async (postId: string, reactionType: ReactionType) => {
     if (!user) return;
+    const prev = postsRef.current.find(p => p.id === postId);
+    const hadReaction = prev?.my_reaction;
 
     // Optimistic update
-    setPosts(prev => prev.map(p => {
+    setPosts(ps => ps.map(p => {
       if (p.id !== postId) return p;
+      const summary = { ...p.reactions_summary };
+      if (hadReaction) summary[hadReaction] = Math.max(0, (summary[hadReaction] || 1) - 1);
+      summary[reactionType] = (summary[reactionType] || 0) + 1;
       return {
         ...p,
-        liked_by_me: !liked,
-        likes_count: liked ? Math.max(0, p.likes_count - 1) : p.likes_count + 1,
+        my_reaction: reactionType,
+        liked_by_me: true,
+        likes_count: hadReaction ? p.likes_count : p.likes_count + 1,
+        reactions_summary: summary,
       };
     }));
 
     try {
-      if (liked) {
-        await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", user.id);
-        const current = postsRef.current.find(p => p.id === postId);
-        await supabase.from("posts").update({ likes_count: Math.max(0, (current?.likes_count ?? 1) - 1) }).eq("id", postId);
+      if (hadReaction) {
+        await supabase.from("post_likes").update({ reaction_type: reactionType }).eq("post_id", postId).eq("user_id", user.id);
       } else {
-        await supabase.from("post_likes").insert({ post_id: postId, user_id: user.id });
+        await supabase.from("post_likes").insert({ post_id: postId, user_id: user.id, reaction_type: reactionType });
         const current = postsRef.current.find(p => p.id === postId);
-        await supabase.from("posts").update({ likes_count: (current?.likes_count ?? 0) + 1 }).eq("id", postId);
+        await supabase.from("posts").update({ likes_count: (current?.likes_count ?? 0) }).eq("id", postId);
       }
     } catch {
-      // Revert on error
+      fetchPosts();
+    }
+  }, [user, fetchPosts]);
+
+  const unreact = useCallback(async (postId: string) => {
+    if (!user) return;
+    const prev = postsRef.current.find(p => p.id === postId);
+    const hadReaction = prev?.my_reaction;
+
+    setPosts(ps => ps.map(p => {
+      if (p.id !== postId) return p;
+      const summary = { ...p.reactions_summary };
+      if (hadReaction) summary[hadReaction] = Math.max(0, (summary[hadReaction] || 1) - 1);
+      return {
+        ...p,
+        my_reaction: null,
+        liked_by_me: false,
+        likes_count: Math.max(0, p.likes_count - 1),
+        reactions_summary: summary,
+      };
+    }));
+
+    try {
+      await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", user.id);
+      const current = postsRef.current.find(p => p.id === postId);
+      await supabase.from("posts").update({ likes_count: Math.max(0, (current?.likes_count ?? 1)) }).eq("id", postId);
+    } catch {
       fetchPosts();
     }
   }, [user, fetchPosts]);
 
   const addComment = useCallback(async (postId: string, content: string) => {
     if (!user) return;
-    // Optimistic comment count
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p));
 
     const { error } = await supabase.from("post_comments").insert({ post_id: postId, user_id: user.id, content });
@@ -125,7 +174,7 @@ export function usePosts() {
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments_count: Math.max(0, p.comments_count - 1) } : p));
       return;
     }
-    await supabase.from("posts").update({ comments_count: (postsRef.current.find(p => p.id === postId)?.comments_count || 0) + 1 }).eq("id", postId);
+    await supabase.from("posts").update({ comments_count: (postsRef.current.find(p => p.id === postId)?.comments_count || 0) }).eq("id", postId);
   }, [user]);
 
   const fetchComments = useCallback(async (postId: string): Promise<Comment[]> => {
@@ -138,5 +187,5 @@ export function usePosts() {
     return data.map(c => ({ ...c, profile: profileMap[c.user_id] || { full_name: null, avatar_url: null } }));
   }, []);
 
-  return { posts, loading, createPost, toggleLike, addComment, fetchComments, refetch: fetchPosts };
+  return { posts, loading, createPost, react, unreact, addComment, fetchComments, refetch: fetchPosts };
 }
