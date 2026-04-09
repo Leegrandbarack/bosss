@@ -260,47 +260,65 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          birth_date: string | null
+          city: string | null
+          country: string | null
           created_at: string
           full_name: string | null
+          gender: string | null
           id: string
           is_private: boolean
           phone: string | null
           privacy_friends_list: string
           privacy_who_can_add: string
           privacy_who_can_see_posts: string
+          school: string | null
           updated_at: string
           user_id: string
           username: string | null
+          work: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          birth_date?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           full_name?: string | null
+          gender?: string | null
           id?: string
           is_private?: boolean
           phone?: string | null
           privacy_friends_list?: string
           privacy_who_can_add?: string
           privacy_who_can_see_posts?: string
+          school?: string | null
           updated_at?: string
           user_id: string
           username?: string | null
+          work?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          birth_date?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           full_name?: string | null
+          gender?: string | null
           id?: string
           is_private?: boolean
           phone?: string | null
           privacy_friends_list?: string
           privacy_who_can_add?: string
           privacy_who_can_see_posts?: string
+          school?: string | null
           updated_at?: string
           user_id?: string
           username?: string | null
+          work?: string | null
         }
         Relationships: []
       }
