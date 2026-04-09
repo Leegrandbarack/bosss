@@ -4,19 +4,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Heart, MessageCircle, Share2, Send } from "lucide-react";
+import { MessageCircle, Share2, Send } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import LazyImage from "./LazyImage";
+import ReactionPicker, { type ReactionType, REACTION_MAP } from "./ReactionPicker";
 
 interface PostCardProps {
   post: PostWithProfile;
-  onLike: (postId: string, liked: boolean) => void;
+  onReact: (postId: string, type: ReactionType) => void;
+  onUnreact: (postId: string) => void;
   onComment: (postId: string, content: string) => void;
   onFetchComments: (postId: string) => Promise<Comment[]>;
 }
 
-function PostCard({ post, onLike, onComment, onFetchComments }: PostCardProps) {
+function PostCard({ post, onReact, onUnreact, onComment, onFetchComments }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
@@ -39,6 +41,12 @@ function PostCard({ post, onLike, onComment, onFetchComments }: PostCardProps) {
     const data = await onFetchComments(post.id);
     setComments(data);
   };
+
+  // Build reaction summary
+  const reactionSummary = post.reactions_summary || {};
+  const topReactions = Object.entries(reactionSummary)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
 
   return (
     <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
@@ -65,7 +73,12 @@ function PostCard({ post, onLike, onComment, onFetchComments }: PostCardProps) {
 
       {(post.likes_count > 0 || post.comments_count > 0) && (
         <div className="flex items-center justify-between px-3.5 py-2 text-xs text-muted-foreground">
-          {post.likes_count > 0 && <span>{post.likes_count} j'aime</span>}
+          <div className="flex items-center gap-1">
+            {topReactions.map(([type]) => (
+              <span key={type} className="text-sm">{REACTION_MAP[type]?.emoji}</span>
+            ))}
+            {post.likes_count > 0 && <span className="ml-1">{post.likes_count}</span>}
+          </div>
           {post.comments_count > 0 && (
             <button onClick={toggleComments} className="hover:underline">
               {post.comments_count} commentaire{post.comments_count > 1 ? "s" : ""}
@@ -75,15 +88,11 @@ function PostCard({ post, onLike, onComment, onFetchComments }: PostCardProps) {
       )}
 
       <div className="flex items-center border-t border-border">
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`flex-1 rounded-none py-2.5 ${post.liked_by_me ? "text-destructive" : "text-muted-foreground"}`}
-          onClick={() => onLike(post.id, post.liked_by_me)}
-        >
-          <Heart className={`mr-1.5 h-[18px] w-[18px] ${post.liked_by_me ? "fill-current" : ""}`} />
-          J'aime
-        </Button>
+        <ReactionPicker
+          currentReaction={post.my_reaction}
+          onReact={(type) => onReact(post.id, type)}
+          onUnreact={() => onUnreact(post.id)}
+        />
         <Button variant="ghost" size="sm" className="flex-1 rounded-none py-2.5 text-muted-foreground" onClick={toggleComments}>
           <MessageCircle className="mr-1.5 h-[18px] w-[18px]" />
           Commenter
