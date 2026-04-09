@@ -193,18 +193,21 @@ export type Database = {
           created_at: string
           id: string
           post_id: string
+          reaction_type: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           post_id: string
+          reaction_type?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           post_id?: string
+          reaction_type?: string
           user_id?: string
         }
         Relationships: [
@@ -260,7 +263,11 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          is_private: boolean
           phone: string | null
+          privacy_friends_list: string
+          privacy_who_can_add: string
+          privacy_who_can_see_posts: string
           updated_at: string
           user_id: string
           username: string | null
@@ -271,7 +278,11 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_private?: boolean
           phone?: string | null
+          privacy_friends_list?: string
+          privacy_who_can_add?: string
+          privacy_who_can_see_posts?: string
           updated_at?: string
           user_id: string
           username?: string | null
@@ -282,7 +293,11 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_private?: boolean
           phone?: string | null
+          privacy_friends_list?: string
+          privacy_who_can_add?: string
+          privacy_who_can_see_posts?: string
           updated_at?: string
           user_id?: string
           username?: string | null
