@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Settings } from "lucide-react";
+import { Moon, Sun, Settings, Newspaper } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -28,6 +28,9 @@ export default function AppHeader() {
           NEXORA
         </Link>
         <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => navigate("/blog")} title="Blog">
+            <Newspaper className="h-5 w-5" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => setDark(!dark)}>
             {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
