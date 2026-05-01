@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Camera, Edit2, MessageCircle, UserPlus, UserCheck } from "lucide-react";
+import { Camera, Edit2, MessageCircle, UserPlus, Clock, Check } from "lucide-react";
 
 interface ProfileHeaderProps {
   profile: {
@@ -17,6 +17,9 @@ interface ProfileHeaderProps {
   uploading: boolean;
   onAvatarUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onEdit: () => void;
+  friendStatus?: "friend" | "sent" | "none";
+  onAddFriend?: () => void;
+  onMessage?: () => void;
 }
 
 export default function ProfileHeader({
@@ -27,6 +30,9 @@ export default function ProfileHeader({
   uploading,
   onAvatarUpload,
   onEdit,
+  friendStatus = "none",
+  onAddFriend,
+  onMessage,
 }: ProfileHeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -98,10 +104,22 @@ export default function ProfileHeader({
               </Button>
             ) : (
               <>
-                <Button size="sm" className="rounded-full px-4 gradient-primary border-0">
-                  <UserPlus className="mr-1.5 h-3.5 w-3.5" /> Ajouter
-                </Button>
-                <Button variant="outline" size="sm" className="rounded-full px-4">
+                {friendStatus === "none" && (
+                  <Button size="sm" className="rounded-full px-4 gradient-primary border-0" onClick={onAddFriend}>
+                    <UserPlus className="mr-1.5 h-3.5 w-3.5" /> Ajouter
+                  </Button>
+                )}
+                {friendStatus === "sent" && (
+                  <Button size="sm" variant="secondary" className="rounded-full px-4" disabled>
+                    <Clock className="mr-1.5 h-3.5 w-3.5" /> Demande envoyée
+                  </Button>
+                )}
+                {friendStatus === "friend" && (
+                  <Button size="sm" variant="secondary" className="rounded-full px-4" disabled>
+                    <Check className="mr-1.5 h-3.5 w-3.5" /> Amis
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="rounded-full px-4" onClick={onMessage}>
                   <MessageCircle className="mr-1.5 h-3.5 w-3.5" /> Message
                 </Button>
               </>
