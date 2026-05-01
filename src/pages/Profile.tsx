@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Info, Users, Image, Clapperboard } from "lucide-react";
+import { FileText, Info, Users, Image, Clapperboard, Lock } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import PostCard from "@/components/social/PostCard";
@@ -13,6 +14,8 @@ import ProfilePhotos from "@/components/profile/ProfilePhotos";
 import ProfileFriendsList from "@/components/profile/ProfileFriendsList";
 import ProfileEditForm from "@/components/profile/ProfileEditForm";
 import { usePosts } from "@/hooks/usePosts";
+import { useFriends } from "@/hooks/useFriends";
+import { useConversations } from "@/hooks/useMessaging";
 
 interface ProfileData {
   full_name: string;
@@ -36,8 +39,16 @@ const EMPTY_PROFILE: ProfileData = {
 
 export default function Profile() {
   const { user } = useAuth();
+  const { userId: routeUserId } = useParams<{ userId?: string }>();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { posts, react, unreact, addComment, fetchComments } = usePosts();
+  const { friends, pendingSent, sendRequest } = useFriends();
+  const { createDirectConversation } = useConversations();
+
+  const targetUserId = routeUserId || user?.id;
+  const isOwner = !routeUserId || routeUserId === user?.id;
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -45,13 +56,21 @@ export default function Profile() {
   const [friendsCount, setFriendsCount] = useState(0);
   const [postsCount, setPostsCount] = useState(0);
   const [profile, setProfile] = useState<ProfileData>(EMPTY_PROFILE);
+  const [otherPosts, setOtherPosts] = useState<any[]>([]);
+
+  const friendStatus: "friend" | "sent" | "none" = !isOwner && targetUserId
+    ? friends.some(f => f.profile.user_id === targetUserId) ? "friend"
+    : pendingSent.some(f => f.profile.user_id === targetUserId) ? "sent"
+    : "none"
+    : "none";
 
   useEffect(() => {
-    if (!user) return;
+    if (!targetUserId) return;
+    setLoading(true);
     Promise.all([
-      supabase.from("profiles").select("full_name, username, avatar_url, bio, is_private, city, country, school, work, birth_date, gender, phone").eq("user_id", user.id).single(),
-      supabase.from("friendships").select("id", { count: "exact", head: true }).or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`).eq("status", "accepted"),
-      supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("profiles").select("full_name, username, avatar_url, bio, is_private, city, country, school, work, birth_date, gender, phone").eq("user_id", targetUserId).maybeSingle(),
+      supabase.from("friendships").select("id", { count: "exact", head: true }).or(`requester_id.eq.${targetUserId},addressee_id.eq.${targetUserId}`).eq("status", "accepted"),
+      supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", targetUserId),
     ]).then(([{ data }, friendsRes, postsRes]) => {
       if (data) {
         setProfile({
@@ -73,7 +92,32 @@ export default function Profile() {
       setPostsCount(postsRes.count || 0);
       setLoading(false);
     });
-  }, [user]);
+  }, [targetUserId]);
+
+  // Fetch posts of other user (public view)
+  useEffect(() => {
+    if (isOwner || !targetUserId) return;
+    (async () => {
+      const { data: postsData } = await supabase
+        .from("posts")
+        .select("*")
+        .eq("user_id", targetUserId)
+        .order("created_at", { ascending: false });
+      const { data: profData } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, avatar_url, username")
+        .eq("user_id", targetUserId)
+        .maybeSingle();
+      const enriched = (postsData || []).map(p => ({
+        ...p,
+        profile: profData || { user_id: targetUserId, full_name: null, avatar_url: null, username: null },
+        reactions_summary: {},
+        my_reaction: null,
+        liked_by_me: false,
+      }));
+      setOtherPosts(enriched);
+    })();
+  }, [isOwner, targetUserId]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -110,7 +154,19 @@ export default function Profile() {
     else { toast({ title: "Profil mis à jour !" }); setEditing(false); }
   };
 
-  const myPosts = posts.filter(p => p.user_id === user?.id);
+  const handleAddFriend = useCallback(() => {
+    if (targetUserId) sendRequest(targetUserId);
+  }, [targetUserId, sendRequest]);
+
+  const handleMessage = useCallback(async () => {
+    if (!targetUserId) return;
+    const convId = await createDirectConversation(targetUserId);
+    if (convId) navigate(`/messages?conv=${convId}`);
+    else navigate("/messages");
+  }, [targetUserId, createDirectConversation, navigate]);
+
+  const myPosts = isOwner ? posts.filter(p => p.user_id === user?.id) : otherPosts;
+  const canSeePosts = isOwner || !profile.is_private || friendStatus === "friend";
 
   if (loading) {
     return (
@@ -131,13 +187,16 @@ export default function Profile() {
           profile={profile}
           postsCount={postsCount}
           friendsCount={friendsCount}
-          isOwner={true}
+          isOwner={isOwner}
           uploading={uploading}
           onAvatarUpload={handleAvatarUpload}
           onEdit={() => setEditing(true)}
+          friendStatus={friendStatus}
+          onAddFriend={handleAddFriend}
+          onMessage={handleMessage}
         />
 
-        {editing && (
+        {editing && isOwner && (
           <ProfileEditForm
             data={profile}
             saving={saving}
@@ -147,7 +206,6 @@ export default function Profile() {
           />
         )}
 
-        {/* Tabs */}
         <div className="mx-auto max-w-lg px-4 mt-6">
           <Tabs defaultValue="posts">
             <TabsList className="w-full grid grid-cols-5 h-11">
@@ -159,8 +217,14 @@ export default function Profile() {
             </TabsList>
 
             <TabsContent value="posts" className="space-y-4 mt-4">
-              {myPosts.length === 0 ? (
-                <p className="text-center text-sm text-muted-foreground py-8">Aucun post pour le moment</p>
+              {!canSeePosts ? (
+                <div className="text-center py-12 space-y-2">
+                  <Lock className="h-10 w-10 mx-auto text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Ce profil est privé</p>
+                  <p className="text-xs text-muted-foreground">Ajoutez cette personne en ami pour voir ses publications</p>
+                </div>
+              ) : myPosts.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-8">Aucun post</p>
               ) : (
                 myPosts.map(post => (
                   <PostCard key={post.id} post={post} onReact={react} onUnreact={unreact} onComment={addComment} onFetchComments={fetchComments} />
@@ -169,15 +233,15 @@ export default function Profile() {
             </TabsContent>
 
             <TabsContent value="about" className="mt-4">
-              <ProfileAbout profile={profile} isOwner={true} />
+              <ProfileAbout profile={profile} isOwner={isOwner} />
             </TabsContent>
 
             <TabsContent value="friends" className="mt-4">
-              {user && <ProfileFriendsList userId={user.id} />}
+              {targetUserId && <ProfileFriendsList userId={targetUserId} />}
             </TabsContent>
 
             <TabsContent value="photos" className="mt-4">
-              {user && <ProfilePhotos userId={user.id} />}
+              {targetUserId && <ProfilePhotos userId={targetUserId} />}
             </TabsContent>
 
             <TabsContent value="stories" className="mt-4">
