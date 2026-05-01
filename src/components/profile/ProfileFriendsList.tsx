@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -56,18 +57,20 @@ export default function ProfileFriendsList({ userId }: ProfileFriendsListProps) 
   return (
     <div className="grid grid-cols-2 gap-3">
       {friends.map(f => (
-        <Card key={f.user_id} className="p-3 flex items-center gap-3 border-border/50 hover:shadow-sm transition-shadow">
-          <Avatar className="h-12 w-12 flex-shrink-0">
-            <AvatarImage src={f.avatar_url || undefined} className="object-cover" />
-            <AvatarFallback className="gradient-primary text-primary-foreground text-sm font-bold">
-              {(f.full_name || "U")[0].toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">{f.full_name || "Utilisateur"}</p>
-            <p className="text-[11px] text-muted-foreground truncate">@{f.username}</p>
-          </div>
-        </Card>
+        <Link key={f.user_id} to={`/profile/${f.user_id}`}>
+          <Card className="p-3 flex items-center gap-3 border-border/50 hover:shadow-md hover:border-primary/30 transition-all cursor-pointer">
+            <Avatar className="h-12 w-12 flex-shrink-0">
+              <AvatarImage src={f.avatar_url || undefined} className="object-cover" />
+              <AvatarFallback className="gradient-primary text-primary-foreground text-sm font-bold">
+                {(f.full_name || "U")[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">{f.full_name || "Utilisateur"}</p>
+              <p className="text-[11px] text-muted-foreground truncate">@{f.username}</p>
+            </div>
+          </Card>
+        </Link>
       ))}
     </div>
   );

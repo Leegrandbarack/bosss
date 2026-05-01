@@ -1,4 +1,5 @@
 import { useState, memo } from "react";
+import { Link } from "react-router-dom";
 import type { PostWithProfile, Comment } from "@/hooks/usePosts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -51,14 +52,18 @@ function PostCard({ post, onReact, onUnreact, onComment, onFetchComments }: Post
   return (
     <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center gap-3 p-3.5">
-        <Avatar className="h-10 w-10 ring-2 ring-accent">
-          <AvatarImage src={post.profile.avatar_url || undefined} />
-          <AvatarFallback className="gradient-primary text-primary-foreground text-sm">
-            {(post.profile.full_name || "U")[0]}
-          </AvatarFallback>
-        </Avatar>
+        <Link to={`/profile/${post.user_id}`} className="flex-shrink-0">
+          <Avatar className="h-10 w-10 ring-2 ring-accent hover:ring-primary transition">
+            <AvatarImage src={post.profile.avatar_url || undefined} />
+            <AvatarFallback className="gradient-primary text-primary-foreground text-sm">
+              {(post.profile.full_name || "U")[0]}
+            </AvatarFallback>
+          </Avatar>
+        </Link>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">{post.profile.full_name || post.profile.username || "Utilisateur"}</p>
+          <Link to={`/profile/${post.user_id}`} className="text-sm font-semibold text-foreground truncate hover:underline block">
+            {post.profile.full_name || post.profile.username || "Utilisateur"}
+          </Link>
           <p className="text-[11px] text-muted-foreground">
             {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: fr })}
           </p>
