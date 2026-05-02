@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import AppHeader from "@/components/AppHeader";
-import BottomNav from "@/components/BottomNav";
+import PublicLayout from "@/components/PublicLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -44,10 +43,11 @@ export default function Blog() {
   }, [posts, query, category]);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <AppHeader />
-
-      <main className="mx-auto max-w-2xl px-4 py-5 space-y-5">
+    <PublicLayout
+      title="Blog Nexora — Articles, idées et actualités"
+      description="Articles et idées sur les réseaux sociaux, la vie privée, la communauté en ligne et la tech. Le blog officiel de Nexora."
+    >
+      <main className="mx-auto max-w-4xl px-4 py-8 space-y-5">
         <section className="space-y-2">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-extrabold tracking-tight">Blog Nexora</h1>
