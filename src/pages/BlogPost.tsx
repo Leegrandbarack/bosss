@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom";
-import AppHeader from "@/components/AppHeader";
-import BottomNav from "@/components/BottomNav";
+import PublicLayout from "@/components/PublicLayout";
+import { useEffect } from "react";
 import { useBlogPost } from "@/hooks/useBlog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,19 @@ export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const { post, loading } = useBlogPost(slug);
 
+  useEffect(() => {
+    if (post) {
+      document.title = `${post.title} — Blog Nexora`;
+      const meta = document.querySelector('meta[name="description"]') || (() => {
+        const m = document.createElement("meta"); m.setAttribute("name", "description"); document.head.appendChild(m); return m;
+      })();
+      meta.setAttribute("content", post.summary || post.title);
+    }
+  }, [post]);
+
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <AppHeader />
-      <main className="mx-auto max-w-2xl px-4 py-5">
+    <PublicLayout>
+      <main className="mx-auto max-w-3xl px-4 py-8">
         <Link to="/blog">
           <Button variant="ghost" size="sm" className="mb-3 gap-1.5">
             <ArrowLeft className="h-4 w-4" /> Retour au blog

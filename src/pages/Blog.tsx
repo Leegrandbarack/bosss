@@ -145,9 +145,7 @@ export default function Blog() {
           </div>
         )}
       </main>
-
-      <BottomNav />
       <BlogEditorDialog open={editorOpen} onOpenChange={setEditorOpen} onCreated={refetch} />
-    </div>
+    </PublicLayout>
   );
 }
