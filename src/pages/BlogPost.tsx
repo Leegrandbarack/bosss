@@ -85,7 +85,6 @@ export default function BlogPostPage() {
           </article>
         )}
       </main>
-      <BottomNav />
-    </div>
+    </PublicLayout>
   );
 }
