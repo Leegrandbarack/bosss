@@ -19,6 +19,8 @@ import Settings from "./pages/Settings";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import Home from "./pages/Home";
+import Decouvrir from "./pages/Decouvrir";
+import Amis from "./pages/Amis";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
@@ -45,6 +47,8 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/decouvrir" element={<Decouvrir />} />
+            <Route path="/amis" element={<Amis />} />
             <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
             <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
             <Route path="/dashboard" element={<Navigate to="/feed" replace />} />

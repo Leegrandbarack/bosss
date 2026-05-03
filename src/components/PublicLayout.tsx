@@ -12,10 +12,10 @@ interface PublicLayoutProps {
 const navItems = [
   { to: "/", label: "Accueil" },
   { to: "/blog", label: "Blog" },
+  { to: "/decouvrir", label: "Découvrir" },
+  { to: "/amis", label: "Amis" },
   { to: "/about", label: "À propos" },
   { to: "/contact", label: "Contact" },
-  { to: "/privacy", label: "Confidentialité" },
-  { to: "/terms", label: "Conditions" },
 ];
 
 export default function PublicLayout({ children, title, description }: PublicLayoutProps) {
@@ -67,7 +67,7 @@ export default function PublicLayout({ children, title, description }: PublicLay
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/blog"><Button size="sm" variant="ghost">Blog</Button></Link>
+            <Link to="/blog"><Button size="sm" variant="ghost" className="hidden sm:inline-flex">Blog</Button></Link>
             <Link to="/contact"><Button size="sm">Contact</Button></Link>
           </div>
         </div>
