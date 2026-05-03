@@ -67,14 +67,8 @@ export default function PublicLayout({ children, title, description }: PublicLay
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            {user ? (
-              <Link to="/feed"><Button size="sm">Mon espace</Button></Link>
-            ) : (
-              <>
-                <Link to="/login"><Button size="sm" variant="ghost">Connexion</Button></Link>
-                <Link to="/signup"><Button size="sm">S'inscrire</Button></Link>
-              </>
-            )}
+            <Link to="/blog"><Button size="sm" variant="ghost">Blog</Button></Link>
+            <Link to="/contact"><Button size="sm">Contact</Button></Link>
           </div>
         </div>
         <nav className="md:hidden flex gap-1 overflow-x-auto px-3 pb-2 border-t border-border/50">
