@@ -36,7 +36,8 @@ export default function Home() {
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link to="/blog"><Button size="lg">Découvrir le blog</Button></Link>
-          <Link to="/about"><Button size="lg" variant="secondary">À propos</Button></Link>
+          <Link to="/decouvrir"><Button size="lg" variant="secondary">Découvrir la communauté</Button></Link>
+          <Link to="/amis"><Button size="lg" variant="ghost">Voir les membres</Button></Link>
         </div>
       </section>
 
@@ -74,10 +75,11 @@ export default function Home() {
       )}
 
       <section className="mx-auto max-w-4xl px-4 py-16 text-center">
-        <h2 className="text-2xl md:text-3xl font-bold">Prêt à rejoindre la communauté ?</h2>
-        <p className="mt-3 text-muted-foreground">Créez votre compte en 30 secondes. Gratuit, sans publicité intrusive.</p>
-        <div className="mt-6">
-          <Link to="/signup"><Button size="lg">Commencer maintenant</Button></Link>
+        <h2 className="text-2xl md:text-3xl font-bold">Explorez Nexora</h2>
+        <p className="mt-3 text-muted-foreground">Lisez nos articles, découvrez la communauté et rencontrez les membres.</p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Link to="/blog"><Button size="lg">Lire le blog</Button></Link>
+          <Link to="/decouvrir"><Button size="lg" variant="secondary">Découvrir</Button></Link>
         </div>
       </section>
     </PublicLayout>
