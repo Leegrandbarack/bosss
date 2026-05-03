@@ -35,8 +35,8 @@ export default function Home() {
           dans une expérience fluide, élégante et respectueuse de votre vie privée.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link to="/signup"><Button size="lg">Créer un compte gratuit</Button></Link>
-          <Link to="/blog"><Button size="lg" variant="secondary">Lire le blog</Button></Link>
+          <Link to="/blog"><Button size="lg">Découvrir le blog</Button></Link>
+          <Link to="/about"><Button size="lg" variant="secondary">À propos</Button></Link>
         </div>
       </section>
 
